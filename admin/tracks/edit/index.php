@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../path.php';
-require_once ADMIN_URL . '/includes/header.php';
+require_once ADMIN_PATH . '/includes/header.php';
 
 // Validate and sanitize ID parameter
 $id = $_GET['id'] ?? '';
@@ -136,4 +136,4 @@ if (!$track) {
     });
 </script>
 
-<?php require_once ADMIN_URL . '/includes/footer.php'; ?>
+<?php require_once ADMIN_PATH . '/includes/footer.php'; ?>

@@ -7,87 +7,29 @@ if (!isset($conn)) {
     die("Database connection failed: " . mysqli_connect_error());
 }
 
-// Get featured tracks from database
-$sql = "SELECT * FROM tracks WHERE featured = 1 AND live_on_site = 1 ORDER BY release_year DESC";
+/**
+ * DISCOGRAPHY PAGE
+ * Full track catalog with filtering, search, and advanced layout
+ * Integrates directly with your tracks table
+ */
+
+// Get ALL live tracks (both featured and non-featured) from database
+$sql = "SELECT * FROM tracks WHERE live_on_site = 1 ORDER BY release_year DESC, title ASC";
 $result = mysqli_query($conn, $sql);
-$tracks = [];
-while ($row = mysqli_fetch_assoc($result)) {
-    $tracks[] = $row;
+
+if (!$result) {
+    die("Query failed: " . mysqli_error($conn));
 }
 
-// Get all tracks for admin table except featured tracks
-$sql = "SELECT * FROM tracks WHERE featured = 0 AND live_on_site = 1 ORDER BY release_year DESC";
-$result = mysqli_query($conn, $sql);
 $allTracks = [];
 while ($row = mysqli_fetch_assoc($result)) {
     $allTracks[] = $row;
 }
 
-/**
- * DISCOGRAPHY PAGE
- * Full track catalog with filtering, search, and advanced layout
- */
-
-// Sample data structure - replace with your actual data source
-$allTracks = [
-    [
-        'id' => 1,
-        'title' => 'Midnight Reflections',
-        'artist' => 'Amon Kune',
-        'role' => 'Production & Mix',
-        'genre' => 'Afro Fusion',
-        'release_year' => 2024,
-        'spotify_url' => 'https://open.spotify.com/embed/track/...',
-        'description' => 'A contemplative blend of modern production with traditional African instrumentation.'
-    ],
-    [
-        'id' => 2,
-        'title' => 'Rise Up',
-        'artist' => 'Chioma feat. Wizkid',
-        'role' => 'Mixing',
-        'genre' => 'Hip-Hop',
-        'release_year' => 2024,
-        'spotify_url' => 'https://open.spotify.com/embed/track/...',
-        'description' => null
-    ],
-    [
-        'id' => 3,
-        'title' => 'Grace',
-        'artist' => 'The Gospel Collective',
-        'role' => 'Production',
-        'genre' => 'Gospel',
-        'release_year' => 2023,
-        'spotify_url' => 'https://open.spotify.com/embed/track/...',
-        'description' => null
-    ],
-    [
-        'id' => 4,
-        'title' => 'Urban Tales',
-        'artist' => 'M.A.K',
-        'role' => 'Co-Production',
-        'genre' => 'Hip-Hop',
-        'release_year' => 2023,
-        'spotify_url' => 'https://open.spotify.com/embed/track/...',
-        'description' => null
-    ],
-    [
-        'id' => 5,
-        'title' => 'Rhythm of the City',
-        'artist' => 'Nonso',
-        'role' => 'Mix Engineering',
-        'genre' => 'R&B',
-        'release_year' => 2023,
-        'spotify_url' => 'https://open.spotify.com/embed/track/...',
-        'description' => null
-    ],
-    // Add more tracks here...
-];
-
-// Get unique filters
-$roles = array_unique(array_column($allTracks, 'role'));
-$genres = array_unique(array_column($allTracks, 'genre'));
-$years = array_unique(array_column($allTracks, 'release_year'));
-rsort($years);
+// Get unique filters from actual data
+$roles = array_values(array_unique(array_filter(array_column($allTracks, 'role'))));
+$genres = array_values(array_unique(array_filter(array_column($allTracks, 'genre'))));
+$years = array_values(array_reverse(array_unique(array_column($allTracks, 'release_year'))));
 
 // Get filter parameters from URL
 $selectedRole = isset($_GET['role']) ? $_GET['role'] : null;
@@ -95,12 +37,20 @@ $selectedGenre = isset($_GET['genre']) ? $_GET['genre'] : null;
 $selectedYear = isset($_GET['year']) ? $_GET['year'] : null;
 $searchQuery = isset($_GET['search']) ? strtolower(trim($_GET['search'])) : null;
 
+// Validate filters against actual data
+if ($selectedRole && !in_array($selectedRole, $roles)) $selectedRole = null;
+if ($selectedGenre && !in_array($selectedGenre, $genres)) $selectedGenre = null;
+if ($selectedYear && !in_array((int)$selectedYear, $years)) $selectedYear = null;
+
 // Filter tracks
 $filteredTracks = array_filter($allTracks, function($track) use ($selectedRole, $selectedGenre, $selectedYear, $searchQuery) {
-    if ($selectedRole && $track['role'] !== $selectedRole) return false;
+    if ($selectedRole && $track['user_role'] !== $selectedRole) return false;
     if ($selectedGenre && $track['genre'] !== $selectedGenre) return false;
     if ($selectedYear && $track['release_year'] != $selectedYear) return false;
-    if ($searchQuery && !stripos($track['title'] . ' ' . $track['artist'], $searchQuery)) return false;
+    if ($searchQuery) {
+        $searchableText = strtolower($track['title'] . ' ' . $track['artist']);
+        if (strpos($searchableText, $searchQuery) === false) return false;
+    }
     return true;
 });
 
@@ -121,28 +71,114 @@ foreach ($filteredTracks as $track) {
     }
     $tracksByYear[$year][] = $track;
 }
-krsort($tracksByYear);
 
 $trackCount = count($filteredTracks);
 $totalCount = count($allTracks);
+
+// Build filter URLs (preserving other filters)
+function buildFilterUrl($filterName, $filterValue) {
+    global $selectedRole, $selectedGenre, $selectedYear, $searchQuery;
+    $params = [];
+    if ($filterName !== 'role' && $selectedRole) $params['role'] = urlencode($selectedRole);
+    if ($filterName !== 'genre' && $selectedGenre) $params['genre'] = urlencode($selectedGenre);
+    if ($filterName !== 'year' && $selectedYear) $params['year'] = $selectedYear;
+    if ($filterName !== 'search' && $searchQuery) $params['search'] = urlencode($searchQuery);
+    if ($filterValue) $params[$filterName] = urlencode($filterValue);
+    $queryString = http_build_query($params);
+    return "?" . ($queryString ? $queryString : 'discography');
+}
+
+function buildClearUrl() {
+    return "?discography";
+}
 ?>
 
-<section class="px-6 lg:px-12 mt-24 lg:mt-32">
-    <div class="grid grid-cols-12 gap-6">
+<section class="px-6 lg:px-12 mt-24 lg:mt-32 border-b border-[#3D3935]">
+    <div class="grid grid-cols-12 gap-6 mb-12">
         <div class="col-span-12 lg:col-span-10 reveal">
             <h1 class="display text-6xl md:text-7xl lg:text-8xl text-cream mb-6">
                 Complete <span class="italic">Catalog.</span>
             </h1>
             <p class="text-cream-2 max-w-3xl mb-4">
-                <?= $totalCount ?> productions across multiple genres and production roles. 
+                <?= $totalCount ?> production<?= $totalCount !== 1 ? 's' : '' ?> across multiple genres and production roles. 
                 Filter by role, genre, or year to explore my work.
             </p>
             <p class="text-cream-3 text-sm">
-                Showing <?= $trackCount ?> of <?= $totalCount ?> tracks
+                Showing <strong><?= $trackCount ?></strong> of <strong><?= $totalCount ?></strong> track<?= $totalCount !== 1 ? 's' : '' ?>
                 <?php if ($selectedRole || $selectedGenre || $selectedYear || $searchQuery): ?>
-                    <a href="?discography" class="text-gold hover:text-cream transition-colors ml-2">Clear filters</a>
+                    · <a href="<?= buildClearUrl() ?>" class="text-gold hover:text-cream transition-colors">Clear filters</a>
                 <?php endif; ?>
             </p>
+        </div>
+    </div>
+
+    <!-- SEARCH & FILTERS -->
+    <div class="space-y-6 reveal pb-12">
+        <!-- Search -->
+        <div>
+            <form method="GET" class="flex flex-col sm:flex-row gap-2">
+                <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Search by title or artist..." 
+                    value="<?= htmlspecialchars($searchQuery ?? '', ENT_QUOTES) ?>"
+                    class="flex-1 bg-[#242019] border border-[#3D3935] px-4 py-3 text-cream placeholder-cream-3 focus:outline-none focus:border-gold"
+                >
+                <button type="submit" class="px-6 py-3 bg-gold text-black font-semibold hover:bg-[#D4B870] transition-colors">
+                    Search
+                </button>
+            </form>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="space-y-4">
+            <!-- By Role -->
+            <?php if (!empty($roles)): ?>
+                <div>
+                    <div class="eyebrow text-cream-3 mb-3">PRODUCTION ROLE</div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="<?= buildClearUrl() ?>" class="filter-chip <?= !$selectedRole ? 'active' : '' ?>">All Roles</a>
+                        <?php foreach ($roles as $role): ?>
+                            <a href="<?= buildFilterUrl('role', $role) ?>" 
+                               class="filter-chip <?= $selectedRole === $role ? 'active' : '' ?>">
+                                <?= htmlspecialchars($role) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- By Genre -->
+            <?php if (!empty($genres)): ?>
+                <div>
+                    <div class="eyebrow text-cream-3 mb-3">GENRE</div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="<?= buildClearUrl() ?>" class="filter-chip <?= !$selectedGenre ? 'active' : '' ?>">All Genres</a>
+                        <?php foreach ($genres as $genre): ?>
+                            <a href="<?= buildFilterUrl('genre', $genre) ?>" 
+                               class="filter-chip <?= $selectedGenre === $genre ? 'active' : '' ?>">
+                                <?= htmlspecialchars($genre) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- By Year -->
+            <?php if (!empty($years)): ?>
+                <div>
+                    <div class="eyebrow text-cream-3 mb-3">YEAR</div>
+                    <div class="flex flex-wrap gap-4 text-muted">
+                        <a href="<?= buildClearUrl() ?>" class="filter-chip <?= !$selectedYear ? 'active' : '' ?>">All Years</a>
+                        <?php foreach ($years as $year): ?>
+                            <a href="<?= buildFilterUrl('year', $year) ?>" 
+                               class="filter-chip <?= $selectedYear == $year ? 'active' : '' ?>">
+                                <?= $year ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </section>
@@ -167,19 +203,21 @@ $totalCount = count($allTracks);
                                             <?= htmlspecialchars($track['artist']) ?>
                                         </p>
                                     </div>
+                                    <?php if ($track['featured']): ?>
+                                        <span class="eyebrow text-gold text-xs px-2 py-1 bg-gold/10 rounded">Featured</span>
+                                    <?php endif; ?>
                                 </div>
                                 
                                 <!-- Metadata -->
                                 <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[#3D3935]">
-                                    <span class="inline-block eyebrow text-gold text-xs">
-                                        <?= htmlspecialchars($track['role']) ?>
-                                    </span>
-                                    <span class="inline-block eyebrow text-cream-3 text-xs">
-                                        <?= htmlspecialchars($track['genre']) ?>
-                                    </span>
+                                    <?php if ($track['user_role']): ?>
+                                        <span class="inline-block eyebrow text-gold text-xs">
+                                            <?= htmlspecialchars($track['user_role']) ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
 
-                                <?php if ($track['description']): ?>
+                                <?php if (!empty($track['description'])): ?>
                                     <p class="text-cream-3 text-xs mt-3 leading-relaxed">
                                         <?= htmlspecialchars($track['description']) ?>
                                     </p>
@@ -187,15 +225,17 @@ $totalCount = count($allTracks);
                             </div>
 
                             <!-- Spotify Embed -->
-                            <iframe 
-                                style="border-radius: 6px" 
-                                src="<?= htmlspecialchars($track['spotify_url']) ?>" 
-                                width="100%" 
-                                height="152" 
-                                frameborder="0" 
-                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                                loading="lazy">
-                            </iframe>
+                            <?php if (!empty($track['spotify_url'])): ?>
+                                <iframe 
+                                    style="border-radius: 6px" 
+                                    src="<?= htmlspecialchars($track['spotify_url']) ?>" 
+                                    width="100%" 
+                                    height="152" 
+                                    frameborder="0" 
+                                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                                    loading="lazy">
+                                </iframe>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -206,7 +246,7 @@ $totalCount = count($allTracks);
         <div class="text-center py-20 reveal">
             <div class="display text-3xl text-cream mb-3">No tracks found</div>
             <p class="text-cream-3 mb-6">Try adjusting your filters or search terms.</p>
-            <a href="?discography" class="btn-ghost font-semibold">Reset filters →</a>
+            <a href="<?= buildClearUrl() ?>" class="btn-ghost font-semibold">Reset filters →</a>
         </div>
     <?php endif; ?>
 </section>
@@ -218,10 +258,6 @@ $totalCount = count($allTracks);
         <div>
             <div class="eyebrow text-gold mb-2">Tracks</div>
             <div class="display text-3xl text-cream"><?= $trackCount ?></div>
-        </div>
-        <div>
-            <div class="eyebrow text-gold mb-2">Genres</div>
-            <div class="display text-3xl text-cream"><?= count(array_unique(array_column($filteredTracks, 'genre'))) ?></div>
         </div>
         <div>
             <div class="eyebrow text-gold mb-2">Years</div>

@@ -43,10 +43,10 @@
                     <?= APP_NAME ?><span class="text-gold">.</span>
                 </a>
                 <ul class="hidden md:flex items-center gap-10 text-sm">
-                    <li><a href="#work" class="nav-link">Work</a></li>
-                    <li><a href="#services" class="nav-link">Services</a></li>
-                    <li><a href="#about" class="nav-link">About</a></li>
-                    <li><a href="#booking" class="nav-link">Booking</a></li>
+                    <li><a href="<?= APP_URL ?>#work" class="nav-link">Work</a></li>
+                    <li><a href="<?= APP_URL ?>#services" class="nav-link">Services</a></li>
+                    <li><a href="<?= APP_URL ?>#about" class="nav-link">About</a></li>
+                    <li><a href="<?= APP_URL ?>#booking" class="nav-link">Booking</a></li>
                 </ul>
                 <a href="#booking"
                     class="hidden md:inline-flex items-center gap-2 eyebrow text-cream-2 hover:text-gold transition-colors">
@@ -64,10 +64,10 @@
         <!-- Mobile menu overlay -->
         <div id="menu"
             class="menu-overlay fixed inset-0 z-40 bg-ink flex flex-col justify-center items-center gap-8 md:hidden">
-            <a href="#work" class="display text-5xl menu-link">Work</a>
-            <a href="#services" class="display text-5xl menu-link">Services</a>
-            <a href="#about" class="display text-5xl menu-link">About</a>
-            <a href="#booking" class="display text-5xl menu-link">Booking</a>
+            <a href="<?= APP_URL ?>#work" class="display text-5xl menu-link">Work</a>
+            <a href="<?= APP_URL ?>#services" class="display text-5xl menu-link">Services</a>
+            <a href="<?= APP_URL ?>#about" class="display text-5xl menu-link">About</a>
+            <a href="<?= APP_URL ?>#booking" class="display text-5xl menu-link">Booking</a>
             <span class="eyebrow mt-8 text-cream-2"><span
                     class="live-dot inline-block w-1.5 h-1.5 rounded-full bg-gold mr-2"></span>Available · Q2 2026</span>
         </div>
