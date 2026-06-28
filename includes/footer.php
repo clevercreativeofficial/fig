@@ -50,17 +50,7 @@
     </div>
 </footer>
 
-<!-- Toast -->
-<div id="toast" class="toast">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path d="M2 7l3 3 7-7" stroke="#C8954B" stroke-width="1.5" />
-    </svg>
-    <span>Bio copied to clipboard</span>
-</div>
-
-
 <script src="<?= APP_URL ?>assets/js/script.js"></script>
-<script src="<?= APP_URL ?>assets/js/discography.js"></script>
 
 </body>
 

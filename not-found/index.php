@@ -22,13 +22,13 @@ require_once INCLUDES . '/header.php';
     </p>
 
     <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
-      <a href="index.html" class="btn-primary">
+      <a href="<?= APP_URL ?>" class="btn-primary">
         Back to home
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M1 7H13M13 7L7 1M13 7L7 13" stroke="currentColor" stroke-width="1.5" />
         </svg>
       </a>
-      <a href="discography.html" class="btn-ghost">Browse discography →</a>
+      <a href="<?= APP_URL ?>discography" class="btn-ghost">Browse discography →</a>
     </div>
   </div>
 </main>

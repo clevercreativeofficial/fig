@@ -3,25 +3,57 @@ require_once __DIR__ . '/path.php';
 require_once CONFIG . '/db.php';
 require_once INCLUDES . '/header.php';
 
+// ============================================================
+// DATABASE CONNECTION CHECK
+// ============================================================
 if (!isset($conn)) {
     die("Database connection failed: " . mysqli_connect_error());
 }
 
-// Get featured tracks from database
-$sql = "SELECT * FROM tracks WHERE featured = 1 AND live_on_site = 1 ORDER BY release_year DESC";
-$result = mysqli_query($conn, $sql);
-$tracks = [];
-while ($row = mysqli_fetch_assoc($result)) {
-    $tracks[] = $row;
+// ============================================================
+// FETCH FEATURED TRACKS
+// ============================================================
+$featured_sql = "SELECT * FROM tracks WHERE featured = 1 AND live_on_site = 1 ORDER BY release_year DESC";
+$featured_result = mysqli_query($conn, $featured_sql);
+
+if (!$featured_result) {
+    die("Featured tracks query failed: " . mysqli_error($conn));
 }
 
-// Get all tracks for admin table except featured tracks
-$sql = "SELECT * FROM tracks WHERE featured = 0 AND live_on_site = 1 ORDER BY release_year DESC";
+$featured_tracks = [];
+while ($featured_row = mysqli_fetch_assoc($featured_result)) {
+    $featured_tracks[] = $featured_row;
+}
+
+// ============================================================
+// FETCH ALL OTHER TRACKS (Non-Featured)
+// ============================================================
+$sql = "SELECT * FROM tracks WHERE featured = 0 AND live_on_site = 1 ORDER BY release_year DESC LIMIT 4";
 $result = mysqli_query($conn, $sql);
+
+if (!$result) {
+    die("All tracks query failed: " . mysqli_error($conn));
+}
+
 $allTracks = [];
 while ($row = mysqli_fetch_assoc($result)) {
     $allTracks[] = $row;
 }
+
+// ============================================================
+// LAYOUT CALCULATIONS
+// ============================================================
+$hasFeatured  = count($featured_tracks) > 0;
+$hasTrack0    = isset($allTracks[0]);
+$hasTrack1    = isset($allTracks[1]);
+$hasTrack2    = isset($allTracks[2]);
+$hasTrack3    = isset($allTracks[3]);
+$topCount     = ($hasTrack0 ? 1 : 0) + ($hasTrack1 ? 1 : 0);
+$bottomCount  = ($hasTrack2 ? 1 : 0) + ($hasTrack3 ? 1 : 0);
+
+// Top secondary block column span
+$topBlockSpan = $hasFeatured ? 'lg:col-span-5' : 'col-span-12';
+$topInnerCols = (!$hasFeatured && $topCount === 2) ? 'md:grid-cols-2' : 'grid-cols-1';
 ?>
 
 <!-- ─────────── HERO ─────────── -->
@@ -118,10 +150,14 @@ while ($row = mysqli_fetch_assoc($result)) {
             </h2>
             <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-24">
                 <div class="reveal">
-                    <p class="text-cream-2 leading-relaxed text-lg"> I produce, mix and master from Burundi, creating records that blend East African soul with contemporary global sound. Every beat, melody and moment is crafted with intention—because great music isn't about doing more, it's about making every choice count. </p>
+                    <p class="text-cream-2 leading-relaxed text-lg">
+                        I produce, mix and master from Burundi, creating records that blend East African soul with contemporary global sound. Every beat, melody and moment is crafted with intention—because great music isn't about doing more, it's about making every choice count.
+                    </p>
                 </div>
                 <div class="reveal">
-                    <p class="text-cream-2 leading-relaxed text-lg"> My work spans Afro Fusion, Afrobeats, R&B, Hip-Hop, Gospel and everything in between. Whether you're an emerging artist or an established voice, I focus on bringing your vision to life with clarity, emotion and a sound that feels timeless. Every project starts with one question: what should people feel when they hear this? </p>
+                    <p class="text-cream-2 leading-relaxed text-lg">
+                        My work spans Afro Fusion, Afrobeats, R&B, Hip-Hop, Gospel and everything in between. Whether you're an emerging artist or an established voice, I focus on bringing your vision to life with clarity, emotion and a sound that feels timeless. Every project starts with one question: what should people feel when they hear this?
+                    </p>
                 </div>
             </div>
 
@@ -145,143 +181,6 @@ while ($row = mysqli_fetch_assoc($result)) {
                 </div>
             </div>
         </div>
-    </div>
-</section>
-
-<!-- ─────────── WORK ─────────── -->
-<section id="work" class="px-6 lg:px-12 py-32 lg:py-48 bg-ink-2/30">
-    <div class="grid grid-cols-12 gap-6 mb-20">
-        <div class="col-span-12 lg:col-span-2 reveal">
-            <div class="eyebrow text-gold">02 / Selected Work</div>
-        </div>
-        <div class="col-span-12 lg:col-span-10 reveal">
-            <h2 class="display text-6xl md:text-7xl lg:text-8xl text-cream">
-                Selected <span class="italic-em">Productions.</span>
-            </h2>
-            <p class="mt-6 text-cream-2 max-w-2xl">
-                Every record tells a different story. From Afro Fusion and Hip-Hop to R&B, Gospel and contemporary African sounds, these projects reflect my approach to production—thoughtful arrangements, clean mixes and music built to connect with people.
-            </p>
-        </div>
-    </div>
-
-
-    <?php $hasFeatured = count($tracks) > 0; ?>
-
-    <?php
-    $hasFeatured  = count($tracks) > 0;
-    $hasTrack1    = isset($allTracks[1]);
-    $hasTrack2    = isset($allTracks[2]);
-    $hasTrack3    = isset($allTracks[3]);
-    $hasTrack4    = isset($allTracks[4]);
-    $topCount     = ($hasTrack1 ? 1 : 0) + ($hasTrack2 ? 1 : 0);
-    $bottomCount  = ($hasTrack3 ? 1 : 0) + ($hasTrack4 ? 1 : 0);
-
-    // Top secondary block column span
-    $topBlockSpan = $hasFeatured ? 'lg:col-span-5' : 'col-span-12';
-    $topInnerCols = (!$hasFeatured && $topCount === 2) ? 'md:grid-cols-2' : 'grid-cols-1';
-    ?>
-
-    <div class="grid grid-cols-12 gap-6">
-
-        <!-- Featured -->
-        <?php if ($hasFeatured): ?>
-            <div class="col-span-12 lg:col-span-7 reveal embed-card p-6 lg:p-8">
-                <div class="flex items-baseline justify-between mb-4">
-                    <div>
-                        <div class="eyebrow text-gold">Featured</div>
-                        <div class="display text-3xl mt-1"><?= $tracks[0]['title'] ?></div>
-                        <div class="text-cream-3 text-sm mt-1"><?= $tracks[0]['artist'] ?> · Production &amp; Mix</div>
-                    </div>
-                    <div class="eyebrow hidden md:block"><?= $tracks[0]['release_year'] ?></div>
-                </div>
-                <iframe style="border-radius:6px"
-                    src="<?= $tracks[0]['spotify_url'] ?>"
-                    width="100%" height="432" frameborder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"></iframe>
-            </div>
-        <?php endif; ?>
-
-        <!-- Top secondary cards -->
-        <?php if ($topCount > 0): ?>
-            <div class="col-span-12 <?= $topBlockSpan ?> grid <?= $topInnerCols ?> gap-6">
-
-                <?php if ($hasTrack1): ?>
-                    <div class="reveal embed-card p-6">
-                        <div class="flex items-baseline justify-between mb-4">
-                            <div>
-                                <div class="display text-2xl"><?= $allTracks[1]['title'] ?></div>
-                                <div class="text-cream-3 text-xs mt-1"><?= $allTracks[1]['artist'] ?> · Mixing</div>
-                            </div>
-                            <div class="eyebrow hidden md:block"><?= $allTracks[1]['release_year'] ?></div>
-                        </div>
-                        <iframe style="border-radius:6px"
-                            src="<?= $allTracks[1]['spotify_url'] ?>"
-                            width="100%" height="152" frameborder="0"
-                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                            loading="lazy"></iframe>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($hasTrack2): ?>
-                    <div class="reveal embed-card p-6">
-                        <div class="flex items-baseline justify-between mb-4">
-                            <div>
-                                <div class="display text-2xl"><?= $allTracks[2]['title'] ?></div>
-                                <div class="text-cream-3 text-xs mt-1"><?= $allTracks[2]['artist'] ?> · Production</div>
-                            </div>
-                            <div class="eyebrow hidden md:block"><?= $allTracks[2]['release_year'] ?></div>
-                        </div>
-                        <iframe style="border-radius:6px"
-                            src="<?= $allTracks[2]['spotify_url'] ?>"
-                            width="100%" height="152" frameborder="0"
-                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                            loading="lazy"></iframe>
-                    </div>
-                <?php endif; ?>
-
-            </div>
-        <?php endif; ?>
-
-        <!-- Bottom row -->
-        <?php if ($hasTrack3): ?>
-            <div class="col-span-12 <?= $bottomCount === 2 ? 'lg:col-span-6' : '' ?> reveal embed-card p-6">
-                <div class="flex items-baseline justify-between mb-4">
-                    <div>
-                        <div class="display text-2xl"><?= $allTracks[3]['title'] ?></div>
-                        <div class="text-cream-3 text-xs mt-1"><?= $allTracks[3]['artist'] ?> · Co-Production</div>
-                    </div>
-                    <div class="eyebrow hidden md:block"><?= $allTracks[3]['release_year'] ?></div>
-                </div>
-                <iframe style="border-radius:6px"
-                    src="<?= $allTracks[3]['spotify_url'] ?>"
-                    width="100%" height="152" frameborder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"></iframe>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($hasTrack4): ?>
-            <div class="col-span-12 <?= $bottomCount === 2 ? 'lg:col-span-6' : '' ?> reveal embed-card p-6">
-                <div class="flex items-baseline justify-between mb-4">
-                    <div>
-                        <div class="display text-2xl"><?= $allTracks[4]['title'] ?></div>
-                        <div class="text-cream-3 text-xs mt-1"><?= $allTracks[4]['artist'] ?> · Mix Engineering</div>
-                    </div>
-                    <div class="eyebrow hidden md:block"><?= $allTracks[4]['release_year'] ?></div>
-                </div>
-                <iframe style="border-radius:6px"
-                    src="<?= $allTracks[4]['spotify_url'] ?>"
-                    width="100%" height="152" frameborder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"></iframe>
-            </div>
-        <?php endif; ?>
-
-    </div>
-
-    <div class="mt-16 reveal">
-        <a href="<?= APP_URL ?>discography" class="btn-ghost">View full discography →</a>
     </div>
 </section>
 
@@ -362,10 +261,152 @@ while ($row = mysqli_fetch_assoc($result)) {
     </div>
 
     <p class="mt-12 text-cream-3 text-sm reveal">
-        Album bundles, retainer arrangements and label deals quoted separately. EP/LP discounts after the first
-        three tracks.
+        Album bundles, retainer arrangements and label deals quoted separately. EP/LP discounts after the first three tracks.
     </p>
 </section>
+
+<!-- ─────────── WORK ─────────── -->
+<section id="work" class="px-6 lg:px-12 py-32 lg:py-48 bg-ink-2/30">
+    <div class="grid grid-cols-12 gap-6 mb-20">
+        <div class="col-span-12 lg:col-span-2 reveal">
+            <div class="eyebrow text-gold">02 / Selected Work</div>
+        </div>
+        <div class="col-span-12 lg:col-span-10 reveal">
+            <h2 class="display text-6xl md:text-7xl lg:text-8xl text-cream">
+                Selected <span class="italic-em">Productions.</span>
+            </h2>
+            <p class="mt-6 text-cream-2 max-w-2xl">
+                Every record tells a different story. From Afro Fusion and Hip-Hop to R&B, Gospel and contemporary African sounds, these projects reflect my approach to production—thoughtful arrangements, clean mixes and music built to connect with people.
+            </p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-12 gap-6">
+
+        <!-- ============================================================ -->
+        <!-- FEATURED TRACK -->
+        <!-- ============================================================ -->
+        <?php if ($hasFeatured): ?>
+            <div class="col-span-12 lg:col-span-7 reveal embed-card p-6 lg:p-8">
+                <div class="flex items-baseline justify-between mb-4">
+                    <div>
+                        <div class="eyebrow text-gold">Featured</div>
+                        <div class="display text-3xl mt-1"><?= htmlspecialchars($featured_tracks[0]['title']) ?></div>
+                        <div class="text-cream-3 text-sm mt-1">
+                            <?= htmlspecialchars($featured_tracks[0]['artist']) ?> ·
+                            <?= htmlspecialchars($featured_tracks[0]['role'] ?? 'Production & Mix') ?>
+                        </div>
+                    </div>
+                    <div class="eyebrow hidden md:block"><?= htmlspecialchars($featured_tracks[0]['release_year']) ?></div>
+                </div>
+                <iframe style="border-radius:6px"
+                    src="<?= htmlspecialchars($featured_tracks[0]['spotify_url']) ?>"
+                    width="100%" height="432" frameborder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"></iframe>
+            </div>
+        <?php endif; ?>
+
+        <!-- ============================================================ -->
+        <!-- TOP SECONDARY CARDS (TRACKS 0 & 1) -->
+        <!-- ============================================================ -->
+        <?php if ($topCount > 0): ?>
+            <div class="col-span-12 <?= $topBlockSpan ?> grid <?= $topInnerCols ?> gap-6">
+
+                <?php if ($hasTrack0): ?>
+                    <div class="reveal embed-card p-6">
+                        <div class="flex items-baseline justify-between mb-4">
+                            <div>
+                                <div class="display text-2xl"><?= htmlspecialchars($allTracks[0]['title']) ?></div>
+                                <div class="text-cream-3 text-xs mt-1">
+                                    <?= htmlspecialchars($allTracks[0]['artist']) ?> ·
+                                    <?= htmlspecialchars($allTracks[0]['role'] ?? 'Mixing') ?>
+                                </div>
+                            </div>
+                            <div class="eyebrow hidden md:block"><?= htmlspecialchars($allTracks[0]['release_year']) ?></div>
+                        </div>
+                        <iframe style="border-radius:6px"
+                            src="<?= htmlspecialchars($allTracks[0]['spotify_url']) ?>"
+                            width="100%" height="152" frameborder="0"
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"></iframe>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($hasTrack1): ?>
+                    <div class="reveal embed-card p-6">
+                        <div class="flex items-baseline justify-between mb-4">
+                            <div>
+                                <div class="display text-2xl"><?= htmlspecialchars($allTracks[1]['title']) ?></div>
+                                <div class="text-cream-3 text-xs mt-1">
+                                    <?= htmlspecialchars($allTracks[1]['artist']) ?> ·
+                                    <?= htmlspecialchars($allTracks[1]['role'] ?? 'Production') ?>
+                                </div>
+                            </div>
+                            <div class="eyebrow hidden md:block"><?= htmlspecialchars($allTracks[1]['release_year']) ?></div>
+                        </div>
+                        <iframe style="border-radius:6px"
+                            src="<?= htmlspecialchars($allTracks[1]['spotify_url']) ?>"
+                            width="100%" height="152" frameborder="0"
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"></iframe>
+                    </div>
+                <?php endif; ?>
+
+            </div>
+        <?php endif; ?>
+
+        <!-- ============================================================ -->
+        <!-- BOTTOM ROW (TRACKS 2 & 3) -->
+        <!-- ============================================================ -->
+        <?php if ($hasTrack2): ?>
+            <div class="col-span-12 <?= $bottomCount === 2 ? 'lg:col-span-6' : '' ?> reveal embed-card p-6">
+                <div class="flex items-baseline justify-between mb-4">
+                    <div>
+                        <div class="display text-2xl"><?= htmlspecialchars($allTracks[2]['title']) ?></div>
+                        <div class="text-cream-3 text-xs mt-1">
+                            <?= htmlspecialchars($allTracks[2]['artist']) ?> ·
+                            <?= htmlspecialchars($allTracks[2]['role'] ?? 'Co-Production') ?>
+                        </div>
+                    </div>
+                    <div class="eyebrow hidden md:block"><?= htmlspecialchars($allTracks[2]['release_year']) ?></div>
+                </div>
+                <iframe style="border-radius:6px"
+                    src="<?= htmlspecialchars($allTracks[2]['spotify_url']) ?>"
+                    width="100%" height="152" frameborder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"></iframe>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($hasTrack3): ?>
+            <div class="col-span-12 <?= $bottomCount === 2 ? 'lg:col-span-6' : '' ?> reveal embed-card p-6">
+                <div class="flex items-baseline justify-between mb-4">
+                    <div>
+                        <div class="display text-2xl"><?= htmlspecialchars($allTracks[3]['title']) ?></div>
+                        <div class="text-cream-3 text-xs mt-1">
+                            <?= htmlspecialchars($allTracks[3]['artist']) ?> ·
+                            <?= htmlspecialchars($allTracks[3]['role'] ?? 'Mix Engineering') ?>
+                        </div>
+                    </div>
+                    <div class="eyebrow hidden md:block"><?= htmlspecialchars($allTracks[3]['release_year']) ?></div>
+                </div>
+                <iframe style="border-radius:6px"
+                    src="<?= htmlspecialchars($allTracks[3]['spotify_url']) ?>"
+                    width="100%" height="152" frameborder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"></iframe>
+            </div>
+        <?php endif; ?>
+
+    </div>
+
+    <div class="mt-16 reveal">
+        <a href="<?= htmlspecialchars(APP_URL) ?>discography" class="btn-ghost">View full discography →</a>
+    </div>
+</section>
+
+<span class="italic">Catalog.</span>
 
 <!-- ─────────── BOOKING ─────────── -->
 <section id="booking" class="px-6 lg:px-12 py-32 lg:py-48 bg-ink-2/30">
@@ -405,7 +446,7 @@ while ($row = mysqli_fetch_assoc($result)) {
                     class="field"></textarea>
 
                 <div class="pt-8 flex flex-col md:flex-row md:items-center gap-6">
-                    <button type="submit" class="btn-primary">
+                    <button type="submit" id="submitBtn" class="btn-primary">
                         Send enquiry
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                             <path d="M1 7H13M13 7L7 1M13 7L7 13" stroke="currentColor" stroke-width="1.5" />
@@ -413,9 +454,14 @@ while ($row = mysqli_fetch_assoc($result)) {
                     </button>
                     <p class="eyebrow text-cream-3">Typical reply · within 48 hours</p>
                 </div>
-                <p id="formMsg" class="text-gold mt-6 hidden">
-                    Received. I'll be in touch within two business days. — A.
-                </p>
+                <div id="formMessages">
+                    <p id="formMsg" class="text-gold mt-6 hidden">
+                        Received. I'll be in touch within two business days. — A.
+                    </p>
+                    <p id="formError" class="text-red-400 mt-6 hidden">
+                        Something went wrong. Please try again or email hello@figpro.com
+                    </p>
+                </div>
             </form>
         </div>
 
@@ -452,4 +498,51 @@ while ($row = mysqli_fetch_assoc($result)) {
     </div>
 </section>
 
+<script>
+    const bookingForm = document.getElementById('bookingForm');
+    bookingForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        const formMsg = document.getElementById('formMsg');
+        const formError = document.getElementById('formError');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+
+        try {
+            const formData = new FormData(bookingForm);
+            console.log('Form data:', formData);
+
+            const response = await fetch('<?= APP_URL ?>api/booking.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            console.log('Response:', result);
+
+            if (result.success) {
+                formError.classList.add('hidden');
+                formMsg.classList.remove('hidden');
+                bookingForm.reset();
+            } else {
+                formMsg.classList.add('hidden');
+                formError.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            formMsg.classList.add('hidden');
+            formError.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `
+            Send enquiry
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 7H13M13 7L7 1M13 7L7 13" stroke="currentColor" stroke-width="1.5" />
+            </svg>
+        `;
+        }
+    });
+</script>
 <?php require_once INCLUDES . '/footer.php'; ?>

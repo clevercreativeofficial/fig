@@ -178,6 +178,7 @@ body {
   padding: 1rem 0;
   width: 100%;
   transition: border-color 0.3s;
+  border-radius: 0;
 }
 
 .field:focus {
